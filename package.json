@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "license": "MIT",
   "dependencies": {
-    ...
+    "express": "^4.19.2",
+    "http-proxy-middleware": "^2.0.6"
+  },
+  "scripts": {
+    "start": "node server.js"
   }
 }
