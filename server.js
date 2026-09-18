@@ -1,14 +1,28 @@
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
-const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// The target website we want to mirror completely
 const TARGET_URL = 'https://kiomet.com'; 
 
-// 1. Serve main iframe wrapper on the homepage
+// 1. DEFINE gameProxy FIRST (before any routes use it)
+const gameProxy = createProxyMiddleware({
+    target: TARGET_URL,
+    changeOrigin: true,
+    ws: true,
+    logLevel: 'debug',
+    pathRewrite: {
+        '^/game-tunnel': '',
+    },
+    onProxyRes: function (proxyRes, req, res) {
+        delete proxyRes.headers['x-frame-options'];
+        delete proxyRes.headers['content-security-policy'];
+        proxyRes.headers['access-control-allow-origin'] = '*';
+        proxyRes.headers['access-control-allow-headers'] = '*';
+    }
+});
+
+// 2. THEN DEFINE YOUR ROUTES
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -27,38 +41,12 @@ app.get('/', (req, res) => {
     `);
 });
 
-// 2. Explicit proxy route for /game-tunnel
 app.use('/game-tunnel', gameProxy);
-
-// 3. Fallback proxy for root assets (/client_bg.wasm, /manifest.json, /data/...)
 app.use('*', gameProxy);
 
-const gameProxy = createProxyMiddleware({
-    target: TARGET_URL,
-    changeOrigin: true,
-    ws: true,
-    logLevel: 'debug',
-    pathRewrite: {
-        '^/game-tunnel': '', // Strip /game-tunnel when forwarding to kiomet.com
-    },
-    onProxyRes: function (proxyRes, req, res) {
-        // Strip X-Frame-Options & Content-Security-Policy to allow iframe embedding
-        delete proxyRes.headers['x-frame-options'];
-        delete proxyRes.headers['content-security-policy'];
-
-        // Permissive CORS headers
-        proxyRes.headers['Access-Control-Allow-Origin'] = '*';
-        proxyRes.headers['Access-Control-Allow-Headers'] = '*';
-    }
-});
-
-// Route all requests under "/game-tunnel" directly through the proxy middleware
-app.use('/game-tunnel', gameProxy);
-
-// Start the server and map the HTTP upgrade head for WebSockets
+// 3. START THE SERVER
 const server = app.listen(PORT, () => {
     console.log(`Proxy network engine live on port ${PORT}`);
 });
 
-// Wire up the live WebSocket tunnel handshake
-server.on('upgrade', gameProxy.upgrade); 
+server.on('upgrade', gameProxy.upgrade);
