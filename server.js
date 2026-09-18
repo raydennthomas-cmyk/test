@@ -49,20 +49,3 @@ const server = app.listen(PORT, () => {
 });
 
 server.on('upgrade', gameProxy.upgrade);
-<script>
-  // Intercept the browser's WebSocket constructor
-  const NativeWebSocket = window.WebSocket;
-  
-  window.WebSocket = function(url, protocols) {
-    // If the game tries to connect to localhost or 127.0.0.1
-    if (url.includes('localhost') || url.includes('127.0.0.1') || url.startsWith('ws://')) {
-      console.log('Intercepted local WebSocket connection:', url);
-      
-      // Force it to use your secure Render address instead
-      url = 'wss://test-2j3o.onrender.com';
-    }
-    
-    // Pass the corrected URL to the native browser socket handler
-    return new NativeWebSocket(url, protocols);
-  };
-</script>
