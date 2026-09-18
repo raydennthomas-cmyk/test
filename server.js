@@ -3,7 +3,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const TARGET_URL = 'https://kiomet.com'; 
+const TARGET_URL = 'https://crazygames.com'; 
 
 const gameProxy = createProxyMiddleware({
     target: TARGET_URL,
