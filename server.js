@@ -3,13 +3,14 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const TARGET_URL = 'https://kiomet.com'; 
+const TARGET_URL = 'https://www.crazygames.com'; 
 
 const gameProxy = createProxyMiddleware({
     target: TARGET_URL,
     changeOrigin: true,
     ws: true,
-    xfwd: true, // Crucial: Forwards original client IP and protocol headers
+    xfwd: true,
+    secure: false,
     logLevel: 'debug',
     pathRewrite: {
         '^/game-tunnel': '',
@@ -22,7 +23,6 @@ const gameProxy = createProxyMiddleware({
     }
 });
 
-// 2. THEN DEFINE YOUR ROUTES
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -44,7 +44,6 @@ app.get('/', (req, res) => {
 app.use('/game-tunnel', gameProxy);
 app.use('*', gameProxy);
 
-// 3. START THE SERVER
 const server = app.listen(PORT, () => {
     console.log(`Proxy network engine live on port ${PORT}`);
 });
