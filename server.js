@@ -5,11 +5,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const TARGET_URL = 'https://kiomet.com'; 
 
-// 1. DEFINE gameProxy FIRST (before any routes use it)
 const gameProxy = createProxyMiddleware({
     target: TARGET_URL,
     changeOrigin: true,
     ws: true,
+    xfwd: true, // Crucial: Forwards original client IP and protocol headers
     logLevel: 'debug',
     pathRewrite: {
         '^/game-tunnel': '',
