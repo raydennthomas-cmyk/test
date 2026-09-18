@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 // The target website we want to mirror completely
 const TARGET_URL = 'https://kiomet.com'; 
 
-// 1. Serve a clean frontend interface
+// 1. Serve main iframe wrapper on the homepage
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -21,21 +21,32 @@ app.get('/', (req, res) => {
             </style>
         </head>
         <body>
-            <!-- Bypasses Google's iframe limitations by using a clean local route -->
             <iframe src="/game-tunnel/"></iframe>
         </body>
         </html>
     `);
 });
 
-// 2. The Proxy Middleware Configuration
+// 2. Explicit proxy route for /game-tunnel
+app.use('/game-tunnel', gameProxy);
+
+// 3. Fallback proxy for root assets (/client_bg.wasm, /manifest.json, /data/...)
+app.use('*', gameProxy);
+
 const gameProxy = createProxyMiddleware({
     target: TARGET_URL,
-    changeOrigin: true,            // Forces the target server to think the request came from itself
-    ws: true,                      // CRITICAL: Enables full WebSocket proxying for live multiplayer data
+    changeOrigin: true,
+    ws: true,
     logLevel: 'debug',
+    pathRewrite: {
+        '^/game-tunnel': '', // Strip /game-tunnel when forwarding to kiomet.com
+    },
     onProxyRes: function (proxyRes, req, res) {
-        // Automatically injects permissive CORS headers so browser scripts never block assets
+        // Strip X-Frame-Options & Content-Security-Policy to allow iframe embedding
+        delete proxyRes.headers['x-frame-options'];
+        delete proxyRes.headers['content-security-policy'];
+
+        // Permissive CORS headers
         proxyRes.headers['Access-Control-Allow-Origin'] = '*';
         proxyRes.headers['Access-Control-Allow-Headers'] = '*';
     }
